@@ -1,6 +1,6 @@
 # ClimSight - Codebase Review
 
-_Abdulhakim Gafai - March 2026_
+Hakim - March 2026_
 
 
 ## a) What Does This System Do?
