@@ -564,7 +564,7 @@ That gave me a concrete mental model of how the system behaves, not just how it 
 
 I used:
 
-- terminal tools such as `rg`, `sed`, `git`, and `pytest`
+- terminal tools such as `vim`, `git`, and `pytest`
 - direct code reading of the main Python and frontend files
 - local execution of targeted tests
 - an AI assistant(codex and claude-code) to speed up repository navigation and synthesis
