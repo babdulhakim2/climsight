@@ -480,7 +480,7 @@ I would add:
 - issue labels for "good first issue", "design discussion", "provider addition", and "research idea"
 - a published roadmap
 
-One theme that came through strongly in my conversation with Satish was that maintainers own the long-term cost of code, not just the short-term excitement of a feature. I agree with that framing. A healthy project says "no" clearly when a feature increases maintenance cost more than it increases long-term value.
+One theme that came through strongly in our conversation was that maintainers own the long-term cost of code, not just the short-term excitement of a feature. I agree with that framing. A healthy project says "no" clearly when a feature increases maintenance cost more than it increases long-term value.
 
 ### 3. Build community around real implementers, not just developers
 
