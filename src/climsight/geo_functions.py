@@ -5,6 +5,7 @@ distance calculations, and geographic attributes
 extraction.
 """
 from functools import lru_cache
+import json
 import logging
 import os
 
@@ -13,11 +14,24 @@ import osmnx as ox
 import pandas as pd
 import requests
 from pyproj import Geod
+from requests.exceptions import JSONDecodeError as RequestsJSONDecodeError
 from requests.exceptions import RequestException, Timeout
 from shapely.geometry import Point, Polygon, LineString
 
 
 logger = logging.getLogger(__name__)
+
+
+def _build_nominatim_headers() -> dict:
+    """Return identifiable headers for Nominatim requests."""
+    user_agent = os.getenv(
+        "NOMINATIM_USER_AGENT",
+        "KTClimateAssist/1.0 (+https://github.com/CliDyn/climsight)",
+    )
+    return {
+        "User-Agent": user_agent,
+        "accept-language": "en",
+    }
 
 @lru_cache(maxsize=100)
 def get_location(lat, lon):
@@ -42,22 +56,57 @@ def get_location(lat, lon):
         "namedetails": 1,
         "zoom": 18
     }
-    headers = {
-        "User-Agent": "climsight",
-        "accept-language": "en"
-    }
-    response = requests.get(url, params=params, headers=headers, timeout=10)
-    location = response.json()
+    contact_email = os.getenv("NOMINATIM_EMAIL", "").strip()
+    if contact_email:
+        params["email"] = contact_email
 
-    # Wait before making the next request (according to terms of use)
-    # time.sleep(1)  # Sleep for 1 second
-
-    if response.status_code == 200:
-        location = response.json()        
-        return location
-    else:
-        print("Error:", response.status_code, response.reason)
+    try:
+        response = requests.get(
+            url,
+            params=params,
+            headers=_build_nominatim_headers(),
+            timeout=10,
+        )
+    except Timeout as exc:
+        logger.warning("Nominatim reverse geocoding timed out for (%s, %s): %s", lat, lon, exc)
         return None
+    except RequestException as exc:
+        logger.warning("Nominatim reverse geocoding request failed for (%s, %s): %s", lat, lon, exc)
+        return None
+
+    if response.status_code != 200:
+        logger.warning(
+            "Nominatim reverse geocoding returned HTTP %s for (%s, %s). Body prefix: %s",
+            response.status_code,
+            lat,
+            lon,
+            response.text[:200].strip(),
+        )
+        return None
+
+    try:
+        location = response.json()
+    except (RequestsJSONDecodeError, json.JSONDecodeError, ValueError):
+        logger.warning(
+            "Nominatim reverse geocoding returned non-JSON content for (%s, %s). "
+            "Content-Type: %s. Body prefix: %s",
+            lat,
+            lon,
+            response.headers.get("Content-Type", ""),
+            response.text[:200].strip(),
+        )
+        return None
+
+    if not isinstance(location, dict):
+        logger.warning(
+            "Nominatim reverse geocoding returned unexpected payload type %s for (%s, %s).",
+            type(location).__name__,
+            lat,
+            lon,
+        )
+        return None
+
+    return location
 
 @lru_cache(maxsize=100)
 def is_point_onland(lat, lon, land_path_in):
